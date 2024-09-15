@@ -1,0 +1,68 @@
+use rayon::prelude::*;
+use std::env;
+use std::fs;
+use std::path::{Path, PathBuf};
+use std::process::Command;
+use std::io;
+
+const PASSWORD: &str = "perragorda"; // Hardcoded password
+
+fn zip_with_password(output_zip: &str, input_files: &[&str]) -> io::Result<()> {
+    // Construct the zip command with the hardcoded password
+    let mut command = Command::new("zip");
+    
+    command.arg("-erP").arg(PASSWORD).arg(output_zip);
+    
+    // Add all input files to the command
+    for input in input_files {
+        command.arg(input);
+    }
+
+    // Execute the zip command
+    let status = command.status()?;
+
+    if status.success() {
+        println!("Successfully created password-protected ZIP: {}", output_zip);
+    } else {
+        eprintln!("Error creating ZIP file.");
+    }
+
+    Ok(())
+}
+
+fn main() {
+    let args: Vec<String> = env::args().collect();
+    
+    if args.len() < 2 {
+        eprintln!("Usage: {} <directory_with_files_and_folders_to_zip>", args[0]);
+        return;
+    }
+
+    let main_directory = PathBuf::from(&args[1]);
+
+    // Check if the provided directory exists
+    if !main_directory.exists() || !main_directory.is_dir() {
+        eprintln!("The provided path is not a valid directory.");
+        return;
+    }
+
+    // Get all files and directories inside the main directory
+    let entries: Vec<PathBuf> = fs::read_dir(&main_directory)
+        .expect("Unable to read the directory")
+        .filter_map(|entry| entry.ok().map(|e| e.path()))
+        .collect();
+
+    // Use rayon for parallel processing of each file/directory
+    entries.par_iter().for_each(|entry| {
+        if let Some(file_stem) = entry.file_stem() {
+            if let Some(file_name_str) = file_stem.to_str() {
+                let output_zip = format!("{}.zip", file_name_str); // Name ZIP file after the directory/file
+                
+                if let Err(e) = zip_with_password(&output_zip, &[entry.to_str().unwrap()]) {
+                    eprintln!("Error zipping file {}: {}", entry.display(), e);
+                }
+            }
+        }
+    });
+}
+

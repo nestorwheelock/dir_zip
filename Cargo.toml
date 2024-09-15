@@ -1,0 +1,16 @@
+[package]
+name = "dir_zip"
+version = "0.1.0"
+edition = "2021"
+
+# Add documentation information
+description = "A Rust tool that creates password-protected ZIP files from directories, using environment variables or prompting the user for a password."
+license = "GNU GPLv3"
+authors = ["Nestor Wheelock <nestor@nestorwheelock.com>"]
+
+[dependencies]
+# Rayon for parallel processing
+rayon = "1.5"
+
+# Std libraries like `std::env` and `std::fs` are built-in, so no need to include them.
+
